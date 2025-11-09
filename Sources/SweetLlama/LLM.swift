@@ -82,7 +82,7 @@ public class LLM {
             llama_free(ctx)
         }
         if let model = model {
-            llama_free_model(model)
+            llama_model_free(model)
         }
         if let smpl = smpl {
             llama_sampler_free(smpl)
@@ -120,7 +120,8 @@ public class LLM {
             nPast -= 1
         }
         
-        llama_kv_cache_seq_rm(ctx, 0, Int32(nPast), Int32(-1))
+        let kv = llama_get_memory(ctx)
+        llama_memory_seq_rm(kv, 0, Int32(nPast), Int32(-1))
         
         llama_perf_context_reset(ctx)
 
@@ -175,13 +176,12 @@ public class LLM {
         if embd.count >= params.nCTX {
             let nLeft = nPast - params.nKeep
             let nDiscard = nLeft / 2
-
-            llama_kv_cache_seq_rm(
-                ctx, 0, Int32(params.nKeep + 1),
+            
+            let kv = llama_get_memory(ctx)
+            llama_memory_seq_rm(kv, 0, Int32(params.nKeep + 1),
                 Int32(params.nKeep + nDiscard + 1))
-            llama_kv_cache_seq_add(
-                ctx, 0, Int32(params.nKeep + 1 + nDiscard), Int32(nPast),
-                Int32(-nDiscard))
+            llama_memory_seq_add(kv, 0, Int32(params.nKeep + 1 + nDiscard), Int32(nPast),
+                                 Int32(-nDiscard))
 
             for i in params.nKeep + 1 + nDiscard..<embd.count {
                 embd[i - nDiscard] = embd[i]
@@ -217,7 +217,7 @@ public class LLM {
 
         if params.nPredict == 0 {
             hasNextToken = false
-            result = llama_token_eos(model)
+            result = llama_vocab_eos(model)
             return result
         }
 
@@ -226,7 +226,7 @@ public class LLM {
         embd.append(result)
         nRemaining -= 1
 
-        if !embd.isEmpty && llama_token_is_eog(model, result) {
+        if !embd.isEmpty && llama_vocab_is_eog(llama_model_get_vocab(model), result) {
             hasNextToken = false
             stoppedEos = true
             return result

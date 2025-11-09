@@ -16,16 +16,16 @@ let package = Package(
             name: "SweetLlama",
             targets: ["SweetLlama"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/ggerganov/llama.cpp", revision: "9b75f03"), // b4122
-    ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "SweetLlama",
             dependencies: [
-                .product(name: "llama", package: "llama.cpp")
+                "LlamaFramework"
             ]),
+        .binaryTarget(
+            name: "LlamaFramework",
+            url: "https://github.com/ggml-org/llama.cpp/releases/download/b6862/llama-b6862-xcframework.zip",
+            checksum: "d89290f1a495ba53bb483363529558896af41db35620a5d3542bbf6af6a163fd"
+        )
     ]
 )
